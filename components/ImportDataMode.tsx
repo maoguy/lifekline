@@ -104,7 +104,28 @@ const ImportDataMode: React.FC<ImportDataModeProps> = ({ onDataImport }) => {
         const fullPrompt = `=== 系统指令 (System Prompt) ===\n\n${BAZI_SYSTEM_INSTRUCTION}\n\n=== 用户提示词 (User Prompt) ===\n\n${generateUserPrompt()}`;
 
         try {
-            await navigator.clipboard.writeText(fullPrompt);
+            if(navigator?.clipboard?.writeText){
+                // navigator.clipboard.writeText需安全上下文 (HTTPS 或 localhost)
+                await navigator.clipboard.writeText(fullPrompt);
+            }else{
+                // 兜底方案
+                function fallbackCopyText(text:string) {
+                    const textArea = document.createElement('textarea');
+                    textArea.value = text;
+                    document.body.appendChild(textArea);
+                    textArea.select();
+                    try {
+                      document.execCommand('copy');
+                      console.log('已通过降级方案复制');
+                    } catch (err) {
+                      console.error('降级复制失败:', err);
+                      // 终极方案：提示用户手动复制
+                      prompt('请手动复制以下内容:', text);
+                    }
+                    document.body.removeChild(textArea);
+                }
+                await fallbackCopyText(fullPrompt);
+            }
             setCopied(true);
             setTimeout(() => setCopied(false), 2000);
         } catch (err) {
@@ -442,3 +463,4 @@ const ImportDataMode: React.FC<ImportDataModeProps> = ({ onDataImport }) => {
 };
 
 export default ImportDataMode;
+
